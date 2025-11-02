@@ -15,7 +15,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: group5_shareride_db
-      MYSQL_USER: group5_user
+      MYSQL_USER: root
       MYSQL_PASSWORD: group5_password
     ports:
       - "3306:3306"
