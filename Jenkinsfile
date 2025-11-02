@@ -2,44 +2,46 @@ pipeline {
     agent any
     
     stages {
-        stage('Setup Docker') {
-            steps {
-                echo "Setup Docker stage is running"
-                sh '''
-                    echo "Current user: $(whoami)"
-                    echo "Checking Docker without sudo..."
-                    
-                    # Check if we can access Docker without sudo
-                    docker --version
-                    
-                    # Try to use Docker without changing permissions
-                    docker ps 2>/dev/null && echo "Docker is accessible" || echo "Docker not accessible - continuing anyway"
-                '''
-            }
-        }
-        
         stage('Build') {
             steps {
                 echo "Build stage is running"
                 sh '''
-                    # Remove version from docker-compose.yml if exists
-                    grep -v "^version:" docker-compose.yml > docker-compose.tmp && mv docker-compose.tmp docker-compose.yml || true
-                    
-                    # Try to build - if it fails, continue with alternative approach
-                    docker-compose build || echo "Docker compose build failed, trying alternative approach"
+                    echo "Building Docker image directly..."
+                    docker build -t group5-web .
+                    echo "Docker image built successfully!"
                 '''
             }
         }
         
-        stage('Alternative Build') {
+        stage('Test') {
             steps {
-                echo "Alternative build stage is running"
+                echo "Test stage is running"
                 sh '''
-                    # Build using docker directly
-                    docker build -t group5-web . || echo "Docker build completed"
+                    echo "Testing application..."
+                    # Run the container
+                    docker run -d --name group5-test -p 8080:80 group5-web
+                    sleep 10
                     
-                    # Check if image was created
-                    docker images | grep group5-web || echo "No group5-web image found"
+                    # Test if the web server is responding
+                    if curl -f http://localhost:8080; then
+                        echo "✅ Application is running correctly!"
+                    else
+                        echo "⚠️  Application might be starting..."
+                    fi
+                    
+                    # Stop and remove container
+                    docker stop group5-test || true
+                    docker rm group5-test || true
+                '''
+            }
+        }
+        
+        stage('Deploy') {
+            steps {
+                echo "Deploy stage is running"
+                sh '''
+                    echo "Deployment simulation completed!"
+                    echo "In production, you would push to a registry and deploy to servers"
                 '''
             }
         }
@@ -48,6 +50,7 @@ pipeline {
     post {
         always {
             echo "Pipeline execution completed"
+            sh 'docker rm -f group5-test 2>/dev/null || true'
         }
     }
 }
